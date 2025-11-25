@@ -4,11 +4,14 @@ import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { motion } from 'framer-motion';
 import Game from '@/components/Game';
+import Leaderboard from '@/components/Leaderboard';
 import { triviaQuestions } from '@/data/triviaQuestions';
 import Snowflakes from '@/components/Snowflakes';
 import Sparkles from '@/components/Sparkles';
 
 type GameState = 'lobby' | 'playing' | 'finished';
+
+const POINTS_PER_CORRECT_ANSWER = 10;
 
 export default function Home() {
   const [gameState, setGameState] = useState<GameState>('lobby');
@@ -25,9 +28,14 @@ export default function Home() {
   }, []);
 
   const handleJoinGame = (playerName: string) => {
-    if (playerName.trim() && !players.includes(playerName.trim())) {
-      setPlayers([...players, playerName.trim()]);
-      setScores({ ...scores, [playerName.trim()]: 0 });
+    const trimmedName = playerName.trim();
+    if (trimmedName && !players.includes(trimmedName)) {
+      setPlayers([...players, trimmedName]);
+      setScores({ ...scores, [trimmedName]: 0 });
+      // Store player name in localStorage for game screen
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('playerName', trimmedName);
+      }
     }
   };
 
@@ -40,8 +48,9 @@ export default function Home() {
   const handleAnswer = (playerName: string, answerIndex: number) => {
     const currentQuestion = triviaQuestions[currentQuestionIndex];
     if (answerIndex === currentQuestion.correctAnswer) {
-      setScores({ ...scores, [playerName]: (scores[playerName] || 0) + 1 });
+      setScores({ ...scores, [playerName]: (scores[playerName] || 0) + POINTS_PER_CORRECT_ANSWER });
     }
+    // If wrong or no answer, they get 0 points (already handled by not adding points)
   };
 
   const handleNextQuestion = () => {
@@ -56,6 +65,7 @@ export default function Home() {
     setGameState('lobby');
     setCurrentQuestionIndex(0);
     setScores({});
+    setPlayers([]);
   };
 
   if (gameState === 'playing') {
@@ -73,85 +83,12 @@ export default function Home() {
   }
 
   if (gameState === 'finished') {
-    const sortedPlayers = [...players].sort((a, b) => (scores[b] || 0) - (scores[a] || 0));
-    const winner = sortedPlayers[0];
-    const maxScore = scores[winner] || 0;
-
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
-        <Snowflakes />
-        <Sparkles />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="glass-effect-strong rounded-3xl p-8 md:p-12 max-w-2xl w-full text-center relative z-20"
-        >
-          <div className="relative inline-block mb-6">
-            <motion.div
-              animate={{ rotate: [0, 10, -10, 10, 0], scale: [1, 1.2, 1] }}
-              transition={{ duration: 1, repeat: Infinity }}
-              className="text-7xl md:text-8xl relative z-10"
-            >
-              🎄
-            </motion.div>
-            <motion.div
-              animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0.8, 0.5] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="absolute inset-0 bg-christmas-gold rounded-full blur-3xl"
-            />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-8 text-shadow-lg">
-            <span className="bg-gradient-to-r from-christmas-gold via-yellow-300 to-christmas-gold bg-clip-text text-transparent">
-              Game Over!
-            </span>
-          </h1>
-          
-          <div className="space-y-4 mb-8">
-            <h2 className="text-2xl font-semibold text-christmas-gold mb-4 text-shadow">Final Scores</h2>
-            {sortedPlayers.map((player, index) => (
-              <motion.div
-                key={player}
-                initial={{ opacity: 0, x: -20, scale: 0.9 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                transition={{ delay: index * 0.1, type: "spring", stiffness: 200 }}
-                className={`glass-effect rounded-xl p-4 ${
-                  index === 0 
-                    ? 'border-4 border-christmas-gold bg-gradient-to-r from-christmas-gold/20 to-yellow-300/20 shadow-[0_0_30px_rgba(255,215,0,0.5)]' 
-                    : 'border-2 border-white/20'
-                }`}
-              >
-                <div className="flex justify-between items-center">
-                  <span className="text-xl font-semibold flex items-center gap-2">
-                    {index === 0 && (
-                      <motion.span
-                        animate={{ rotate: [0, 15, -15, 0] }}
-                        transition={{ duration: 1, repeat: Infinity }}
-                      >
-                        👑
-                      </motion.span>
-                    )}
-                    {player}
-                  </span>
-                  <span className="text-2xl font-bold bg-gradient-to-r from-christmas-gold to-yellow-300 bg-clip-text text-transparent">
-                    {scores[player] || 0} / {triviaQuestions.length}
-                  </span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          <motion.button
-            whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(220, 20, 60, 0.6)" }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleResetGame}
-            className="btn-red text-white font-bold py-4 px-10 rounded-full text-lg transition-all hover:brightness-110"
-          >
-            <span className="flex items-center gap-2">
-              🎄 Play Again
-            </span>
-          </motion.button>
-        </motion.div>
-      </div>
+      <Leaderboard
+        players={players}
+        scores={scores}
+        onReset={handleResetGame}
+      />
     );
   }
 
@@ -200,14 +137,14 @@ export default function Home() {
           <p className="text-xl md:text-2xl text-snow-white/95 text-shadow flex items-center justify-center gap-2">
             <motion.span
               animate={{ rotate: [0, 360] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
             >
               ✨
             </motion.span>
             Scan the QR code to join the game!
             <motion.span
               animate={{ rotate: [0, -360] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
             >
               ✨
             </motion.span>
@@ -223,14 +160,14 @@ export default function Home() {
           >
             <motion.div
               animate={{ rotate: [0, 360] }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
               className="absolute -top-10 -right-10 w-20 h-20 text-6xl opacity-20"
             >
               🎁
             </motion.div>
             <motion.div
               animate={{ rotate: [360, 0] }}
-              transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
               className="absolute -bottom-10 -left-10 w-20 h-20 text-6xl opacity-20"
             >
               🎄
@@ -281,7 +218,7 @@ export default function Home() {
                     key={player}
                     initial={{ opacity: 0, scale: 0.8, x: -20 }}
                     animate={{ opacity: 1, scale: 1, x: 0 }}
-                    transition={{ delay: index * 0.1, type: "spring", stiffness: 200 }}
+                    transition={{ delay: index * 0.1, type: 'spring', stiffness: 200 }}
                     className="bg-gradient-to-r from-white/20 to-white/10 rounded-xl p-4 text-center border-2 border-christmas-gold/30 shadow-lg hover:border-christmas-gold/60 transition-all"
                   >
                     <span className="text-lg font-semibold flex items-center justify-center gap-2">
@@ -299,7 +236,7 @@ export default function Home() {
             </div>
 
             <motion.button
-              whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(220, 20, 60, 0.6)" }}
+              whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(220, 20, 60, 0.6)' }}
               whileTap={{ scale: 0.95 }}
               onClick={handleStartGame}
               disabled={players.length === 0}
@@ -329,13 +266,13 @@ export default function Home() {
         >
           <motion.div
             animate={{ rotate: [0, 360] }}
-            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+            transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
             className="absolute top-0 right-0 w-32 h-32 text-8xl opacity-10"
           >
             ⭐
           </motion.div>
           <h2 className="text-2xl font-bold text-christmas-gold mb-6 text-shadow text-center relative z-10">
-            Enter Your Name
+            Enter Your Name to Join
           </h2>
           <JoinForm onJoin={handleJoinGame} existingPlayers={players} />
         </motion.div>
@@ -372,7 +309,7 @@ function JoinForm({
       />
       <motion.button
         type="submit"
-        whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(255, 215, 0, 0.6)" }}
+        whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(255, 215, 0, 0.6)' }}
         whileTap={{ scale: 0.95 }}
         className="btn-gold text-christmas-green-dark font-bold py-4 px-8 rounded-full text-lg transition-all hover:brightness-110"
       >

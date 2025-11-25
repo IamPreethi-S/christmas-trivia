@@ -16,6 +16,8 @@ interface GameProps {
   onNextQuestion: () => void;
 }
 
+const POINTS_PER_CORRECT_ANSWER = 10;
+
 export default function Game({
   question,
   questionNumber,
@@ -28,6 +30,17 @@ export default function Game({
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
   const [showResults, setShowResults] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
+  const [currentPlayer, setCurrentPlayer] = useState<string>('');
+
+  useEffect(() => {
+    // Get current player's name from localStorage
+    if (typeof window !== 'undefined') {
+      const playerName = localStorage.getItem('playerName');
+      if (playerName) {
+        setCurrentPlayer(playerName);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     setSelectedAnswers({});
@@ -91,7 +104,7 @@ export default function Game({
             >
               <motion.div
                 animate={{ x: ['-100%', '100%'] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
               />
             </motion.div>
@@ -107,7 +120,7 @@ export default function Game({
         >
           <motion.div
             animate={{ rotate: [0, 360] }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
             className="absolute -top-10 -right-10 w-32 h-32 text-8xl opacity-10"
           >
             🎬
@@ -146,12 +159,19 @@ export default function Game({
                   transition={{ delay: index * 0.1 }}
                   whileHover={!showResults ? { scale: 1.02 } : {}}
                   whileTap={!showResults ? { scale: 0.98 } : {}}
-                  disabled={showResults}
+                  disabled={showResults || !currentPlayer}
+                  onClick={() => {
+                    if (currentPlayer && !selectedAnswers[currentPlayer]) {
+                      handleAnswer(currentPlayer, index);
+                    }
+                  }}
                   className={`p-6 rounded-2xl text-left transition-all relative overflow-hidden ${
                     showResults
                       ? isCorrect
                         ? 'bg-gradient-to-r from-green-500/60 to-emerald-500/60 border-4 border-green-400 shadow-[0_0_20px_rgba(34,197,94,0.5)]'
                         : 'bg-gradient-to-r from-red-500/40 to-rose-500/40 border-2 border-red-400'
+                      : selectedAnswers[currentPlayer] === index
+                      ? 'bg-gradient-to-r from-christmas-gold/40 to-yellow-300/40 border-4 border-christmas-gold shadow-[0_0_20px_rgba(255,215,0,0.5)]'
                       : 'bg-gradient-to-r from-white/15 to-white/10 hover:from-white/25 hover:to-white/15 border-2 border-white/30 hover:border-christmas-gold/50 shadow-lg hover:shadow-xl'
                   }`}
                 >
@@ -230,7 +250,7 @@ export default function Game({
                 >
                   <div className="text-sm font-semibold mb-1">{player}</div>
                   <div className="text-2xl font-bold bg-gradient-to-r from-christmas-gold to-yellow-300 bg-clip-text text-transparent">
-                    {scores[player] || 0}
+                    {scores[player] || 0} pts
                   </div>
                 </motion.div>
               ))}
@@ -245,7 +265,7 @@ export default function Game({
             className="text-center"
           >
             <motion.button
-              whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(220, 20, 60, 0.6)" }}
+              whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(220, 20, 60, 0.6)' }}
               whileTap={{ scale: 0.95 }}
               onClick={onNextQuestion}
               className="btn-red text-white font-bold py-4 px-12 rounded-full text-xl transition-all hover:brightness-110"
@@ -257,7 +277,7 @@ export default function Game({
                   </>
                 ) : (
                   <>
-                    🏆 View Results
+                    🏆 View Leaderboard
                   </>
                 )}
               </span>
