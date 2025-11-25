@@ -18,7 +18,30 @@ export default function Home() {
   const [players, setPlayers] = useState<string[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [scores, setScores] = useState<Record<string, number>>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
   const [gameUrl, setGameUrl] = useState('');
+
+  // Fetch game state from API
+  const fetchGameState = async () => {
+    try {
+      const response = await fetch('/api/game');
+      const data = await response.json();
+      setPlayers(data.players || []);
+      setScores(data.scores || {});
+      setGameState(data.gameState || 'lobby');
+      setCurrentQuestionIndex(data.currentQuestionIndex || 0);
+      setSelectedAnswers(data.selectedAnswers || {});
+    } catch (error) {
+      console.error('Error fetching game state:', error);
+    }
+  };
+
+  // Poll for game state updates (every 1 second)
+  useEffect(() => {
+    fetchGameState();
+    const interval = setInterval(fetchGameState, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     // Set the game URL for QR code
@@ -27,45 +50,108 @@ export default function Home() {
     }
   }, []);
 
-  const handleJoinGame = (playerName: string) => {
+  const handleJoinGame = async (playerName: string) => {
     const trimmedName = playerName.trim();
     if (trimmedName && !players.includes(trimmedName)) {
-      setPlayers([...players, trimmedName]);
-      setScores({ ...scores, [trimmedName]: 0 });
-      // Store player name in localStorage for game screen
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('playerName', trimmedName);
+      try {
+        await fetch('/api/game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'join', playerName: trimmedName }),
+        });
+        // Store player name in localStorage for game screen
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('playerName', trimmedName);
+        }
+        // Refresh state
+        await fetchGameState();
+      } catch (error) {
+        console.error('Error joining game:', error);
       }
     }
   };
 
-  const handleStartGame = () => {
+  const handleStartGame = async () => {
     if (players.length > 0) {
-      setGameState('playing');
+      try {
+        await fetch('/api/game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'start' }),
+        });
+        await fetchGameState();
+      } catch (error) {
+        console.error('Error starting game:', error);
+      }
     }
   };
 
-  const handleAnswer = (playerName: string, answerIndex: number) => {
+  const handleAnswer = async (playerName: string, answerIndex: number) => {
     const currentQuestion = triviaQuestions[currentQuestionIndex];
-    if (answerIndex === currentQuestion.correctAnswer) {
-      setScores({ ...scores, [playerName]: (scores[playerName] || 0) + POINTS_PER_CORRECT_ANSWER });
+    try {
+      // Record the answer
+      await fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: 'answer', 
+          playerName,
+          answerIndex,
+          questionIndex: currentQuestionIndex,
+        }),
+      });
+      
+      // Update score if correct
+      if (answerIndex === currentQuestion.correctAnswer) {
+        await fetch('/api/game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'updateScore', playerName }),
+        });
+      }
+      await fetchGameState();
+    } catch (error) {
+      console.error('Error submitting answer:', error);
     }
-    // If wrong or no answer, they get 0 points (already handled by not adding points)
   };
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = async () => {
     if (currentQuestionIndex < triviaQuestions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      try {
+        await fetch('/api/game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'nextQuestion' }),
+        });
+        await fetchGameState();
+      } catch (error) {
+        console.error('Error moving to next question:', error);
+      }
     } else {
-      setGameState('finished');
+      try {
+        await fetch('/api/game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'finish' }),
+        });
+        await fetchGameState();
+      } catch (error) {
+        console.error('Error finishing game:', error);
+      }
     }
   };
 
-  const handleResetGame = () => {
-    setGameState('lobby');
-    setCurrentQuestionIndex(0);
-    setScores({});
-    setPlayers([]);
+  const handleResetGame = async () => {
+    try {
+      await fetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset' }),
+      });
+      await fetchGameState();
+    } catch (error) {
+      console.error('Error resetting game:', error);
+    }
   };
 
   if (gameState === 'playing') {
@@ -76,6 +162,7 @@ export default function Home() {
         totalQuestions={triviaQuestions.length}
         players={players}
         scores={scores}
+        selectedAnswers={selectedAnswers}
         onAnswer={handleAnswer}
         onNextQuestion={handleNextQuestion}
       />

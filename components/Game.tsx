@@ -12,6 +12,7 @@ interface GameProps {
   totalQuestions: number;
   players: string[];
   scores: Record<string, number>;
+  selectedAnswers?: Record<string, number>;
   onAnswer: (playerName: string, answerIndex: number) => void;
   onNextQuestion: () => void;
 }
@@ -24,13 +25,19 @@ export default function Game({
   totalQuestions,
   players,
   scores,
+  selectedAnswers: propSelectedAnswers = {},
   onAnswer,
   onNextQuestion,
 }: GameProps) {
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>(propSelectedAnswers);
   const [showResults, setShowResults] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
   const [currentPlayer, setCurrentPlayer] = useState<string>('');
+
+  // Sync selectedAnswers from props (which come from API)
+  useEffect(() => {
+    setSelectedAnswers(propSelectedAnswers);
+  }, [propSelectedAnswers]);
 
   useEffect(() => {
     // Get current player's name from localStorage
@@ -63,12 +70,11 @@ export default function Game({
 
   const handleAnswer = (playerName: string, answerIndex: number) => {
     if (!selectedAnswers[playerName] && !showResults) {
-      setSelectedAnswers({ ...selectedAnswers, [playerName]: answerIndex });
       onAnswer(playerName, answerIndex);
     }
   };
 
-  const allAnswered = players.every((player) => selectedAnswers[player] !== undefined);
+  const allAnswered = players.length > 0 && players.every((player) => selectedAnswers[player] !== undefined);
   
   useEffect(() => {
     if (allAnswered && !showResults) {
