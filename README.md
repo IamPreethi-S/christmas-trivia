@@ -12,6 +12,7 @@ A beautiful, interactive Christmas movie trivia game with QR code join functiona
 - 🏆 **Leaderboard**: See who wins at the end!
 - ⏱️ **30 Second Timer**: Each question has a 30-second timer
 - 💯 **10 Points Per Answer**: Each correct answer earns 10 points
+- 🔓 **No Login Required**: Players just scan, enter name, and play - no accounts needed!
 
 ## Game Flow
 
@@ -45,6 +46,8 @@ npm run dev
 
 ## Deployment to Vercel
 
+**Important**: Vercel login is only needed by the developer/host to deploy the website. Once the site is live, players don't need any login - they just visit the URL!
+
 ### Method 1: Via GitHub (Recommended)
 
 1. **Push to GitHub**:
@@ -56,29 +59,36 @@ npm run dev
    git push -u origin main
    ```
 
-2. **Deploy on Vercel**:
-   - Go to [vercel.com](https://vercel.com) and sign in
+2. **Deploy on Vercel** (Developer only - one time setup):
+   - Go to [vercel.com](https://vercel.com) and sign in (only the developer needs to do this)
    - Click "New Project" → Import your repository
    - Click "Deploy" (settings auto-detected)
    - Your site is live! 🎉
+   - **Players can now visit the URL - no login needed!**
 
 ### Method 2: Via CLI
 
 ```bash
 npm install -g vercel
-vercel login
+vercel login  # Only developer needs to login
 vercel --prod
 ```
 
+**After deployment**: Share the Vercel URL with players. They just open it in their browser - no login, no accounts, no hassle!
+
 ## How to Play
 
+**No login or account required!** Just follow these simple steps:
+
 1. **Host**: Open the game on a shared screen (TV, projector, etc.)
-2. **Players**: Scan the QR code with their phones
-3. **Join**: Players enter their names to join
+2. **Players**: Scan the QR code with their phones (no app download needed!)
+3. **Join**: Players enter their names to join (that's it - no registration!)
 4. **Start**: Host clicks "Start Game" when everyone is ready
 5. **Answer**: Players tap answers on their phones (30 seconds per question)
 6. **Results**: See scores after each question
 7. **Winner**: Final leaderboard shows the champion!
+
+**Note**: Vercel login is only needed by the developer/host to deploy the website. Once deployed, players just visit the URL - no login required!
 
 ## Scoring System
 
