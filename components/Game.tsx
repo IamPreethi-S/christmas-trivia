@@ -13,6 +13,8 @@ interface GameProps {
   players: string[];
   scores: Record<string, number>;
   selectedAnswers?: Record<string, number>;
+  isHost?: boolean;
+  currentPlayer?: string;
   onAnswer: (playerName: string, answerIndex: number) => void;
   onNextQuestion: () => void;
 }
@@ -26,28 +28,34 @@ export default function Game({
   players,
   scores,
   selectedAnswers: propSelectedAnswers = {},
+  isHost = false,
+  currentPlayer = '',
   onAnswer,
   onNextQuestion,
 }: GameProps) {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>(propSelectedAnswers);
   const [showResults, setShowResults] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
-  const [currentPlayer, setCurrentPlayer] = useState<string>('');
+  const [localPlayerName, setLocalPlayerName] = useState<string>('');
 
   // Sync selectedAnswers from props (which come from API)
   useEffect(() => {
     setSelectedAnswers(propSelectedAnswers);
   }, [propSelectedAnswers]);
 
+  // Get current player's name
   useEffect(() => {
-    // Get current player's name from localStorage
-    if (typeof window !== 'undefined') {
+    if (currentPlayer) {
+      setLocalPlayerName(currentPlayer);
+    } else if (typeof window !== 'undefined') {
       const playerName = localStorage.getItem('playerName');
       if (playerName) {
-        setCurrentPlayer(playerName);
+        setLocalPlayerName(playerName);
       }
     }
-  }, []);
+  }, [currentPlayer]);
+
+  const activePlayerName = currentPlayer || localPlayerName;
 
   useEffect(() => {
     setSelectedAnswers({});
@@ -165,10 +173,10 @@ export default function Game({
                   transition={{ delay: index * 0.1 }}
                   whileHover={!showResults ? { scale: 1.02 } : {}}
                   whileTap={!showResults ? { scale: 0.98 } : {}}
-                  disabled={showResults || !currentPlayer}
+                  disabled={showResults || !activePlayerName || isHost}
                   onClick={() => {
-                    if (currentPlayer && !selectedAnswers[currentPlayer]) {
-                      handleAnswer(currentPlayer, index);
+                    if (activePlayerName && !selectedAnswers[activePlayerName] && !isHost) {
+                      handleAnswer(activePlayerName, index);
                     }
                   }}
                   className={`p-6 rounded-2xl text-left transition-all relative overflow-hidden ${
@@ -176,7 +184,7 @@ export default function Game({
                       ? isCorrect
                         ? 'bg-gradient-to-r from-green-500/60 to-emerald-500/60 border-4 border-green-400 shadow-[0_0_20px_rgba(34,197,94,0.5)]'
                         : 'bg-gradient-to-r from-red-500/40 to-rose-500/40 border-2 border-red-400'
-                      : selectedAnswers[currentPlayer] === index
+                      : selectedAnswers[activePlayerName] === index
                       ? 'bg-gradient-to-r from-christmas-gold/40 to-yellow-300/40 border-4 border-christmas-gold shadow-[0_0_20px_rgba(255,215,0,0.5)]'
                       : 'bg-gradient-to-r from-white/15 to-white/10 hover:from-white/25 hover:to-white/15 border-2 border-white/30 hover:border-christmas-gold/50 shadow-lg hover:shadow-xl'
                   }`}
@@ -199,68 +207,118 @@ export default function Game({
             })}
           </div>
 
-          {/* Player Status */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {players.map((player) => {
-              const hasAnswered = selectedAnswers[player] !== undefined;
-              const isCorrect = selectedAnswers[player] === question.correctAnswer;
-              
-              return (
-                <motion.div
-                  key={player}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className={`p-3 rounded-lg text-center ${
-                    showResults
-                      ? isCorrect
-                        ? 'bg-green-500/30'
+          {/* Player Status - Host sees all, Players see only themselves */}
+          {isHost ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {players.map((player) => {
+                const hasAnswered = selectedAnswers[player] !== undefined;
+                const isCorrect = selectedAnswers[player] === question.correctAnswer;
+                
+                return (
+                  <motion.div
+                    key={player}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className={`p-3 rounded-lg text-center ${
+                      showResults
+                        ? isCorrect
+                          ? 'bg-green-500/30'
+                          : hasAnswered
+                          ? 'bg-red-500/30'
+                          : 'bg-gray-500/30'
                         : hasAnswered
-                        ? 'bg-red-500/30'
-                        : 'bg-gray-500/30'
-                      : hasAnswered
-                      ? 'bg-christmas-gold/30'
-                      : 'bg-white/10'
-                  }`}
-                >
-                  <div className="text-sm font-semibold">{player}</div>
-                  <div className="text-xs mt-1">
-                    {hasAnswered ? (showResults ? (isCorrect ? '✓' : '✗') : '✓') : '...'}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
+                        ? 'bg-christmas-gold/30'
+                        : 'bg-white/10'
+                    }`}
+                  >
+                    <div className="text-sm font-semibold">{player}</div>
+                    <div className="text-xs mt-1">
+                      {hasAnswered ? (showResults ? (isCorrect ? '✓' : '✗') : '✓') : '...'}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          ) : activePlayerName ? (
+            <div className="flex justify-center">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className={`p-4 rounded-lg text-center w-full max-w-xs ${
+                  showResults
+                    ? selectedAnswers[activePlayerName] === question.correctAnswer
+                      ? 'bg-green-500/30'
+                      : selectedAnswers[activePlayerName] !== undefined
+                      ? 'bg-red-500/30'
+                      : 'bg-gray-500/30'
+                    : selectedAnswers[activePlayerName] !== undefined
+                    ? 'bg-christmas-gold/30'
+                    : 'bg-white/10'
+                }`}
+              >
+                <div className="text-lg font-semibold mb-2">{activePlayerName}</div>
+                <div className="text-sm">
+                  {selectedAnswers[activePlayerName] !== undefined 
+                    ? (showResults 
+                        ? (selectedAnswers[activePlayerName] === question.correctAnswer ? '✓ Correct!' : '✗ Wrong')
+                        : '✓ Answered')
+                    : 'Waiting...'}
+                </div>
+              </motion.div>
+            </div>
+          ) : null}
         </motion.div>
 
-        {/* Scores */}
+        {/* Scores - Host sees leaderboard, Players see only their score */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="glass-effect-strong rounded-3xl p-6 mb-8"
         >
           <h3 className="text-xl font-bold text-christmas-gold mb-4 text-center text-shadow">
-            Current Scores
+            {isHost ? 'Leaderboard' : 'Your Score'}
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {players
-              .sort((a, b) => (scores[b] || 0) - (scores[a] || 0))
-              .map((player, index) => (
-                <motion.div
-                  key={player}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`bg-gradient-to-br from-white/20 to-white/10 rounded-xl p-4 text-center border-2 ${
-                    index === 0 ? 'border-christmas-gold/50 shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 'border-white/20'
-                  }`}
-                >
-                  <div className="text-sm font-semibold mb-1">{player}</div>
-                  <div className="text-2xl font-bold bg-gradient-to-r from-christmas-gold to-yellow-300 bg-clip-text text-transparent">
-                    {scores[player] || 0} pts
-                  </div>
-                </motion.div>
-              ))}
-          </div>
+          {isHost ? (
+            <div className="space-y-3">
+              {players
+                .sort((a, b) => (scores[b] || 0) - (scores[a] || 0))
+                .map((player, index) => (
+                  <motion.div
+                    key={player}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                    className={`bg-gradient-to-r from-white/20 to-white/10 rounded-xl p-4 border-2 ${
+                      index === 0 ? 'border-christmas-gold/50 shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 'border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl font-bold text-christmas-gold w-8">
+                          #{index + 1}
+                        </span>
+                        <span className="text-lg font-semibold">
+                          {index === 0 && '👑 '}
+                          {player}
+                        </span>
+                      </div>
+                      <div className="text-2xl font-bold bg-gradient-to-r from-christmas-gold to-yellow-300 bg-clip-text text-transparent">
+                        {scores[player] || 0} pts
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+            </div>
+          ) : activePlayerName ? (
+            <div className="text-center">
+              <div className="bg-gradient-to-r from-christmas-gold/20 to-yellow-300/20 rounded-xl p-8 border-2 border-christmas-gold/50">
+                <div className="text-2xl font-semibold mb-2">{activePlayerName}</div>
+                <div className="text-5xl font-bold bg-gradient-to-r from-christmas-gold to-yellow-300 bg-clip-text text-transparent">
+                  {scores[activePlayerName] || 0} pts
+                </div>
+              </div>
+            </div>
+          ) : null}
         </motion.div>
 
         {/* Next Button */}
