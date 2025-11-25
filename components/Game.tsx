@@ -3,6 +3,8 @@
 import { motion } from 'framer-motion';
 import { Question } from '@/data/triviaQuestions';
 import { useState, useEffect } from 'react';
+import Snowflakes from '@/components/Snowflakes';
+import Sparkles from '@/components/Sparkles';
 
 interface GameProps {
   question: Question;
@@ -33,7 +35,7 @@ export default function Game({
     setTimeLeft(30);
 
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
+      setTimeLeft((prev: number) => {
         if (prev <= 1) {
           clearInterval(timer);
           setShowResults(true);
@@ -63,44 +65,65 @@ export default function Game({
   }, [allAnswered, showResults]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full">
+    <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
+      <Snowflakes />
+      <Sparkles />
+      <div className="max-w-4xl w-full relative z-20">
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-xl font-semibold text-christmas-gold">
+            <span className="text-xl font-semibold text-christmas-gold text-shadow">
               Question {questionNumber} of {totalQuestions}
             </span>
-            <span className="text-xl font-semibold text-christmas-gold">
+            <motion.span 
+              className="text-xl font-semibold text-christmas-gold text-shadow flex items-center gap-2"
+              animate={{ scale: timeLeft <= 5 ? [1, 1.2, 1] : 1 }}
+              transition={{ duration: 0.5, repeat: timeLeft <= 5 ? Infinity : 0 }}
+            >
               ⏱️ {timeLeft}s
-            </span>
+            </motion.span>
           </div>
-          <div className="w-full bg-white/20 rounded-full h-3">
+          <div className="w-full bg-white/20 rounded-full h-4 shadow-inner border-2 border-white/30">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${(questionNumber / totalQuestions) * 100}%` }}
-              className="bg-christmas-gold h-3 rounded-full"
-            />
+              className="bg-gradient-to-r from-christmas-gold via-yellow-300 to-christmas-gold h-4 rounded-full shadow-lg relative overflow-hidden"
+            >
+              <motion.div
+                animate={{ x: ['-100%', '100%'] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+              />
+            </motion.div>
           </div>
         </div>
 
         {/* Question Card */}
         <motion.div
           key={question.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-effect rounded-3xl p-8 md:p-12 mb-8"
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="glass-effect-strong rounded-3xl p-8 md:p-12 mb-8 relative overflow-hidden"
         >
-          <div className="text-center mb-6">
+          <motion.div
+            animate={{ rotate: [0, 360] }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="absolute -top-10 -right-10 w-32 h-32 text-8xl opacity-10"
+          >
+            🎬
+          </motion.div>
+          <div className="text-center mb-6 relative z-10">
             <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}
-              className="text-5xl mb-4"
+              animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+              className="text-6xl mb-4"
             >
               🎬
             </motion.div>
-            <h2 className="text-2xl md:text-3xl font-bold text-christmas-gold mb-4 text-shadow">
-              {question.movie}
+            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-shadow-lg">
+              <span className="bg-gradient-to-r from-christmas-gold via-yellow-300 to-christmas-gold bg-clip-text text-transparent">
+                {question.movie}
+              </span>
             </h2>
             <h3 className="text-xl md:text-2xl font-semibold text-white text-shadow">
               {question.question}
@@ -124,12 +147,12 @@ export default function Game({
                   whileHover={!showResults ? { scale: 1.02 } : {}}
                   whileTap={!showResults ? { scale: 0.98 } : {}}
                   disabled={showResults}
-                  className={`p-6 rounded-2xl text-left transition-all ${
+                  className={`p-6 rounded-2xl text-left transition-all relative overflow-hidden ${
                     showResults
                       ? isCorrect
-                        ? 'bg-green-500/50 border-2 border-green-400'
-                        : 'bg-red-500/30 border-2 border-red-400'
-                      : 'bg-white/10 hover:bg-white/20 border-2 border-transparent'
+                        ? 'bg-gradient-to-r from-green-500/60 to-emerald-500/60 border-4 border-green-400 shadow-[0_0_20px_rgba(34,197,94,0.5)]'
+                        : 'bg-gradient-to-r from-red-500/40 to-rose-500/40 border-2 border-red-400'
+                      : 'bg-gradient-to-r from-white/15 to-white/10 hover:from-white/25 hover:to-white/15 border-2 border-white/30 hover:border-christmas-gold/50 shadow-lg hover:shadow-xl'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -185,26 +208,31 @@ export default function Game({
 
         {/* Scores */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="glass-effect rounded-3xl p-6 mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-effect-strong rounded-3xl p-6 mb-8"
         >
-          <h3 className="text-xl font-bold text-christmas-gold mb-4 text-center">
+          <h3 className="text-xl font-bold text-christmas-gold mb-4 text-center text-shadow">
             Current Scores
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {players
               .sort((a, b) => (scores[b] || 0) - (scores[a] || 0))
-              .map((player) => (
-                <div
+              .map((player, index) => (
+                <motion.div
                   key={player}
-                  className="bg-white/10 rounded-lg p-3 text-center"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  className={`bg-gradient-to-br from-white/20 to-white/10 rounded-xl p-4 text-center border-2 ${
+                    index === 0 ? 'border-christmas-gold/50 shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 'border-white/20'
+                  }`}
                 >
-                  <div className="text-sm font-semibold">{player}</div>
-                  <div className="text-lg font-bold text-christmas-gold">
+                  <div className="text-sm font-semibold mb-1">{player}</div>
+                  <div className="text-2xl font-bold bg-gradient-to-r from-christmas-gold to-yellow-300 bg-clip-text text-transparent">
                     {scores[player] || 0}
                   </div>
-                </div>
+                </motion.div>
               ))}
           </div>
         </motion.div>
@@ -217,12 +245,22 @@ export default function Game({
             className="text-center"
           >
             <motion.button
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(220, 20, 60, 0.6)" }}
               whileTap={{ scale: 0.95 }}
               onClick={onNextQuestion}
-              className="bg-christmas-red hover:bg-red-700 text-white font-bold py-4 px-12 rounded-full text-xl transition-colors"
+              className="btn-red text-white font-bold py-4 px-12 rounded-full text-xl transition-all hover:brightness-110"
             >
-              {questionNumber < totalQuestions ? 'Next Question' : 'View Results'}
+              <span className="flex items-center gap-2">
+                {questionNumber < totalQuestions ? (
+                  <>
+                    ➡️ Next Question
+                  </>
+                ) : (
+                  <>
+                    🏆 View Results
+                  </>
+                )}
+              </span>
             </motion.button>
           </motion.div>
         )}
