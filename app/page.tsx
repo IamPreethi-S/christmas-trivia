@@ -30,7 +30,10 @@ export default function Home() {
       const urlParams = new URLSearchParams(window.location.search);
       const mode = urlParams.get('mode');
       
-      const baseUrl = window.location.origin + window.location.pathname;
+      // Get the full base URL (origin + pathname)
+      const origin = window.location.origin;
+      const pathname = window.location.pathname;
+      const baseUrl = origin + pathname;
       
       // Check URL parameter first (most reliable indicator)
       if (mode === 'host') {
@@ -44,6 +47,11 @@ export default function Home() {
         setViewMode('player');
         localStorage.setItem('isHost', 'false');
         setGameUrl(baseUrl);
+        // Clear any old player name so they can enter fresh
+        const savedPlayerName = localStorage.getItem('playerName');
+        if (savedPlayerName) {
+          setPlayerName(savedPlayerName);
+        }
       } else {
         // No URL parameter - check if we should restore previous session
         const isHost = localStorage.getItem('isHost') === 'true';
@@ -98,12 +106,19 @@ export default function Home() {
   const handleHostGame = () => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('isHost', 'true');
-      setViewMode('host');
-      const baseUrl = window.location.origin + window.location.pathname;
+      
+      // Get the current URL - ensure we use the actual deployed URL
+      const origin = window.location.origin;
+      const pathname = window.location.pathname;
+      const baseUrl = origin + pathname;
+      const playerUrl = baseUrl + '?mode=player';
+      
       // Update URL with host parameter
       window.history.pushState({}, '', baseUrl + '?mode=host');
+      
       // Set QR code URL for players (with player parameter)
-      setGameUrl(baseUrl + '?mode=player');
+      setGameUrl(playerUrl);
+      setViewMode('host');
     }
   };
 
@@ -359,8 +374,11 @@ export default function Home() {
                   />
                 )}
               </div>
-              <p className="text-snow-white/90 text-sm font-semibold relative z-10">
+              <p className="text-snow-white/90 text-sm font-semibold relative z-10 mb-2">
                 Players scan this QR code
+              </p>
+              <p className="text-snow-white/70 text-xs relative z-10 break-all px-2">
+                URL: {gameUrl}
               </p>
             </motion.div>
 

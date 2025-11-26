@@ -44,6 +44,26 @@ npm run dev
 
 3. Open [http://localhost:3000](http://localhost:3000) in your browser
 
+### Testing Locally
+
+**For same device testing:**
+- Open `http://localhost:3000` in your browser
+- Click "Host a Game"
+- Open a new incognito window and go to `http://localhost:3000?mode=player`
+
+**For testing across devices (phone + computer):**
+1. Find your computer's IP address:
+   - Windows: `ipconfig` (look for IPv4 Address)
+   - Mac/Linux: `ifconfig` or `ip addr`
+2. Start server with network access:
+   ```bash
+   npx next dev -H 0.0.0.0
+   ```
+3. On your computer: Open `http://YOUR_IP:3000` (e.g., `http://192.168.1.100:3000`)
+4. On your phone (same WiFi): Scan the QR code or type `http://YOUR_IP:3000?mode=player`
+
+See [TESTING.md](./TESTING.md) for detailed testing instructions.
+
 ## Deployment to Vercel
 
 **Important**: Vercel login is only needed by the developer/host to deploy the website. Once the site is live, players don't need any login - they just visit the URL!
