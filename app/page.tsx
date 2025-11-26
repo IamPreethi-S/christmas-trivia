@@ -47,34 +47,18 @@ export default function Home() {
         setViewMode('player');
         localStorage.setItem('isHost', 'false');
         setGameUrl(baseUrl);
-        // Clear any old player name so they can enter fresh
+        // Check if player already has a name saved
         const savedPlayerName = localStorage.getItem('playerName');
         if (savedPlayerName) {
           setPlayerName(savedPlayerName);
         }
       } else {
-        // No URL parameter - check if we should restore previous session
-        const isHost = localStorage.getItem('isHost') === 'true';
-        const savedPlayerName = localStorage.getItem('playerName');
-        
-        if (isHost) {
-          // Restore host view if they were hosting
-          setViewMode('host');
-          setGameUrl(baseUrl + '?mode=player');
-        } else if (savedPlayerName) {
-          // Restore player view if they were playing
-          setPlayerName(savedPlayerName);
-          setViewMode('player');
-          localStorage.setItem('isHost', 'false');
-          setGameUrl(baseUrl);
-        } else {
-          // First visit or fresh start - show landing page
-          setViewMode('landing');
-          setGameUrl(baseUrl);
-          // Clear any old state
-          localStorage.removeItem('isHost');
-          localStorage.removeItem('playerName');
-        }
+        // No URL parameter - ALWAYS show landing page (fresh start)
+        setViewMode('landing');
+        setGameUrl(baseUrl);
+        // Clear any old state to ensure clean start
+        localStorage.removeItem('isHost');
+        localStorage.removeItem('playerName');
       }
     }
   }, []);
