@@ -27,28 +27,40 @@ export default function Home() {
   // Check if user is host or player on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const isHost = localStorage.getItem('isHost') === 'true';
-      const savedPlayerName = localStorage.getItem('playerName');
       const urlParams = new URLSearchParams(window.location.search);
       const mode = urlParams.get('mode');
+      
+      // QR code URL - will be updated when host clicks "Host a Game"
+      // Default to base URL, but will be set to include ?mode=player when host starts
+      const baseUrl = window.location.origin + window.location.pathname;
+      setGameUrl(baseUrl + (mode === 'host' ? '?mode=player' : ''));
 
-      // QR code should point to base URL (no query params) so players go to player view
-      setGameUrl(window.location.origin + window.location.pathname);
-
-      if (mode === 'host' || isHost) {
-        // Host view - clicked "Host a Game" or has host flag
+      // Check URL parameter first (most reliable)
+      if (mode === 'host') {
+        // Host clicked "Host a Game" button
         setViewMode('host');
         localStorage.setItem('isHost', 'true');
-      } else if (savedPlayerName || mode === 'player') {
-        // Player has joined or scanning QR code - show player view (skip landing page)
-        if (savedPlayerName) {
-          setPlayerName(savedPlayerName);
-        }
+      } else if (mode === 'player') {
+        // Player scanning QR code - go directly to player view
         setViewMode('player');
         localStorage.setItem('isHost', 'false');
       } else {
-        // First visit - show landing page with "Host a Game" button
-        setViewMode('landing');
+        // Check localStorage for saved state
+        const isHost = localStorage.getItem('isHost') === 'true';
+        const savedPlayerName = localStorage.getItem('playerName');
+        
+        if (isHost) {
+          // Host has previously hosted - show host view
+          setViewMode('host');
+        } else if (savedPlayerName) {
+          // Player has previously joined - show player view with their name
+          setPlayerName(savedPlayerName);
+          setViewMode('player');
+          localStorage.setItem('isHost', 'false');
+        } else {
+          // First visit - show landing page with "Host a Game" button
+          setViewMode('landing');
+        }
       }
     }
   }, []);
@@ -81,8 +93,10 @@ export default function Home() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('isHost', 'true');
       setViewMode('host');
-      // Update URL
+      // Update URL with host parameter
       window.history.pushState({}, '', window.location.pathname + '?mode=host');
+      // Set QR code URL for players (with join parameter)
+      setGameUrl(window.location.origin + window.location.pathname + '?mode=player');
     }
   };
 
@@ -331,7 +345,7 @@ export default function Home() {
               <div className="bg-white p-4 rounded-2xl inline-block mb-6 relative z-10 shadow-2xl border-4 border-christmas-gold/30">
                 {gameUrl && (
                   <QRCodeSVG
-                    value={gameUrl}
+                    value={gameUrl.includes('?mode=player') ? gameUrl : gameUrl + '?mode=player'}
                     size={256}
                     level="H"
                     includeMargin={true}
