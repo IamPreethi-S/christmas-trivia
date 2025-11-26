@@ -32,19 +32,24 @@ export default function Home() {
       const urlParams = new URLSearchParams(window.location.search);
       const mode = urlParams.get('mode');
 
+      // QR code should point to base URL (no query params) so players go to player view
+      setGameUrl(window.location.origin + window.location.pathname);
+
       if (mode === 'host' || isHost) {
+        // Host view - clicked "Host a Game" or has host flag
         setViewMode('host');
         localStorage.setItem('isHost', 'true');
-      } else {
-        // Default to player view if not host
+      } else if (savedPlayerName || mode === 'player') {
+        // Player has joined or scanning QR code - show player view (skip landing page)
         if (savedPlayerName) {
           setPlayerName(savedPlayerName);
         }
         setViewMode('player');
         localStorage.setItem('isHost', 'false');
+      } else {
+        // First visit - show landing page with "Host a Game" button
+        setViewMode('landing');
       }
-
-      setGameUrl(window.location.origin + window.location.pathname);
     }
   }, []);
 
