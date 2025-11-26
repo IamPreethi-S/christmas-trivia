@@ -35,7 +35,6 @@ export default function Game({
 }: GameProps) {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>(propSelectedAnswers);
   const [showResults, setShowResults] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30);
   const [localPlayerName, setLocalPlayerName] = useState<string>('');
 
   // Sync selectedAnswers from props (which come from API)
@@ -63,23 +62,7 @@ export default function Game({
   useEffect(() => {
     // Reset state for new question
     setShowResults(false);
-    setTimeLeft(30);
     setSelectedAnswers({});
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev: number) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setShowResults(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      clearInterval(timer);
-    };
   }, [question.id]);
 
   const handleAnswer = (playerName: string, answerIndex: number) => {
@@ -95,12 +78,12 @@ export default function Game({
   });
   
   useEffect(() => {
-    if (allAnswered && !showResults && timeLeft > 0) {
+    if (allAnswered && !showResults) {
       // If all players answered, show results after 1 second
       const timer = setTimeout(() => setShowResults(true), 1000);
       return () => clearTimeout(timer);
     }
-  }, [allAnswered, showResults, timeLeft]);
+  }, [allAnswered, showResults]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
@@ -113,13 +96,16 @@ export default function Game({
             <span className="text-xl font-semibold text-christmas-gold text-shadow">
               Question {questionNumber} of {totalQuestions}
             </span>
-            <motion.span 
-              className="text-xl font-semibold text-christmas-gold text-shadow flex items-center gap-2"
-              animate={{ scale: timeLeft <= 5 ? [1, 1.2, 1] : 1 }}
-              transition={{ duration: 0.5, repeat: timeLeft <= 5 ? Infinity : 0 }}
-            >
-              ⏱️ {timeLeft}s
-            </motion.span>
+            {!showResults && players.length > 0 && (
+              <span className="text-lg font-semibold text-snow-white/80 text-shadow">
+                {players.filter(p => (propSelectedAnswers || selectedAnswers)[p] !== undefined).length} / {players.length} answered
+              </span>
+            )}
+            {showResults && (
+              <span className="text-lg font-semibold text-green-400 text-shadow">
+                ✓ All players answered
+              </span>
+            )}
           </div>
           <div className="w-full bg-white/20 rounded-full h-4 shadow-inner border-2 border-white/30">
             <motion.div
@@ -163,9 +149,14 @@ export default function Game({
                 {question.movie}
               </span>
             </h2>
-            <h3 className="text-xl md:text-2xl font-semibold text-white text-shadow">
+            <h3 className="text-xl md:text-2xl font-semibold text-white text-shadow mb-4">
               {question.question}
             </h3>
+            {!showResults && players.length > 0 && (
+              <p className="text-sm text-snow-white/70 italic">
+                Waiting for all players to answer...
+              </p>
+            )}
           </div>
 
           {/* Answer Options */}

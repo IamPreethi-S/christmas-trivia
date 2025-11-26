@@ -77,40 +77,5 @@ export const triviaQuestions: Question[] = [
     correctAnswer: 0,
     movie: "Miracle on 34th Street"
   },
-  {
-    id: 11,
-    question: "What does Ralphie want for Christmas in 'A Christmas Story'?",
-    options: ["A bike", "A Red Ryder BB gun", "A train set", "A puppy"],
-    correctAnswer: 1,
-    movie: "A Christmas Story"
-  },
-  {
-    id: 12,
-    question: "In 'Elf', what is Buddy's real name before he discovers he's an elf?",
-    options: ["Walter Hobbs", "Buddy Hobbs", "Michael Hobbs", "He doesn't have one"],
-    correctAnswer: 1,
-    movie: "Elf"
-  },
-  {
-    id: 13,
-    question: "What is the name of the train in 'The Polar Express'?",
-    options: ["The Christmas Express", "The Polar Express", "The North Pole Express", "The Holiday Express"],
-    correctAnswer: 1,
-    movie: "The Polar Express"
-  },
-  {
-    id: 14,
-    question: "In 'Home Alone 2', which city does Kevin get lost in?",
-    options: ["Chicago", "New York", "Los Angeles", "Boston"],
-    correctAnswer: 1,
-    movie: "Home Alone 2"
-  },
-  {
-    id: 15,
-    question: "What is the name of the reindeer with the red nose?",
-    options: ["Rudolph", "Dasher", "Prancer", "Comet"],
-    correctAnswer: 0,
-    movie: "Rudolph the Red-Nosed Reindeer"
-  }
 ];
 
