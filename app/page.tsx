@@ -35,9 +35,13 @@ export default function Home() {
       if (mode === 'host' || isHost) {
         setViewMode('host');
         localStorage.setItem('isHost', 'true');
-      } else if (savedPlayerName) {
-        setPlayerName(savedPlayerName);
+      } else {
+        // Default to player view if not host
+        if (savedPlayerName) {
+          setPlayerName(savedPlayerName);
+        }
         setViewMode('player');
+        localStorage.setItem('isHost', 'false');
       }
 
       setGameUrl(window.location.origin + window.location.pathname);
@@ -102,7 +106,8 @@ export default function Home() {
   };
 
   const handleStartGame = async () => {
-    if (players.length > 0) {
+    // Only host can start the game
+    if (viewMode === 'host' && players.length > 0) {
       try {
         await fetch('/api/game', {
           method: 'POST',
@@ -478,27 +483,21 @@ export default function Home() {
                     </p>
                   </div>
                 </div>
-              </div>
 
-              <motion.button
-                whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(220, 20, 60, 0.6)' }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleStartGame}
-                disabled={players.length === 0}
-                className={`w-full font-bold py-4 px-6 rounded-full text-lg transition-all ${
-                  players.length > 0
-                    ? 'btn-red text-white hover:brightness-110'
-                    : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                }`}
-              >
-                {players.length > 0 ? (
-                  <span className="flex items-center justify-center gap-2">
-                    🎮 Start Game
-                  </span>
-                ) : (
-                  'Waiting for host to start...'
-                )}
-              </motion.button>
+                {/* Waiting message */}
+                <div className="bg-white/10 rounded-xl p-4 mb-4">
+                  <p className="text-snow-white/90 font-semibold">
+                    {gameState === 'lobby' 
+                      ? '⏳ Waiting for host to start the game...' 
+                      : '✅ You\'re ready! Waiting for game to begin...'}
+                  </p>
+                  {players.length > 0 && (
+                    <p className="text-sm text-snow-white/70 mt-2">
+                      {players.length} player{players.length !== 1 ? 's' : ''} joined
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </motion.div>
@@ -521,27 +520,30 @@ function PlayerJoinForm({ onJoin }: { onJoin: (name: string) => void }) {
   return (
     <form onSubmit={handleSubmit} className="relative z-10">
       <h2 className="text-2xl font-bold text-christmas-gold mb-6 text-shadow text-center">
-        Enter Your Name
+        Enter Your Name to Join
       </h2>
-      <div className="flex gap-4">
+      <div className="flex flex-col gap-4">
         <input
           type="text"
           value={name}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
           placeholder="Enter your name..."
-          className="flex-1 bg-white/25 border-2 border-white/40 rounded-full px-6 py-4 text-white placeholder-white/70 focus:outline-none focus:ring-4 focus:ring-christmas-gold/50 focus:border-christmas-gold text-lg font-semibold shadow-lg backdrop-blur-sm"
+          className="w-full bg-white/25 border-2 border-white/40 rounded-full px-6 py-4 text-white placeholder-white/70 focus:outline-none focus:ring-4 focus:ring-christmas-gold/50 focus:border-christmas-gold text-lg font-semibold shadow-lg backdrop-blur-sm"
         />
         <motion.button
           type="submit"
           whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(255, 215, 0, 0.6)' }}
           whileTap={{ scale: 0.95 }}
-          className="btn-gold text-christmas-green-dark font-bold py-4 px-8 rounded-full text-lg transition-all hover:brightness-110"
+          className="btn-gold text-christmas-green-dark font-bold py-4 px-8 rounded-full text-lg transition-all hover:brightness-110 w-full"
         >
-          <span className="flex items-center gap-2">
-            ✨ Join
+          <span className="flex items-center justify-center gap-2">
+            ✨ Join Game
           </span>
         </motion.button>
       </div>
+      <p className="text-center text-snow-white/70 text-sm mt-4">
+        After joining, wait for the host to start the game
+      </p>
     </form>
   );
 }
