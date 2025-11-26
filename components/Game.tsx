@@ -42,6 +42,9 @@ export default function Game({
   useEffect(() => {
     setSelectedAnswers(propSelectedAnswers);
   }, [propSelectedAnswers]);
+  
+  // Use propSelectedAnswers directly to avoid state sync issues
+  const currentSelectedAnswers = propSelectedAnswers || selectedAnswers;
 
   // Get current player's name
   useEffect(() => {
@@ -58,9 +61,10 @@ export default function Game({
   const activePlayerName = currentPlayer || localPlayerName;
 
   useEffect(() => {
-    setSelectedAnswers({});
+    // Reset state for new question
     setShowResults(false);
     setTimeLeft(30);
+    setSelectedAnswers({});
 
     const timer = setInterval(() => {
       setTimeLeft((prev: number) => {
@@ -73,23 +77,30 @@ export default function Game({
       });
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+    };
   }, [question.id]);
 
   const handleAnswer = (playerName: string, answerIndex: number) => {
-    if (!selectedAnswers[playerName] && !showResults) {
+    const answers = propSelectedAnswers || selectedAnswers;
+    if (!answers[playerName] && !showResults) {
       onAnswer(playerName, answerIndex);
     }
   };
 
-  const allAnswered = players.length > 0 && players.every((player) => selectedAnswers[player] !== undefined);
+  const allAnswered = players.length > 0 && players.every((player) => {
+    const answers = propSelectedAnswers || selectedAnswers;
+    return answers[player] !== undefined;
+  });
   
   useEffect(() => {
-    if (allAnswered && !showResults) {
+    if (allAnswered && !showResults && timeLeft > 0) {
+      // If all players answered, show results after 1 second
       const timer = setTimeout(() => setShowResults(true), 1000);
       return () => clearTimeout(timer);
     }
-  }, [allAnswered, showResults]);
+  }, [allAnswered, showResults, timeLeft]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
@@ -161,9 +172,13 @@ export default function Game({
           <div className="grid md:grid-cols-2 gap-4 mb-8">
             {question.options.map((option, index) => {
               const isCorrect = index === question.correctAnswer;
-              const playerAnswers = Object.entries(selectedAnswers)
-                .filter(([_, answerIndex]) => answerIndex === index)
-                .map(([player]) => player);
+              const answers = propSelectedAnswers || selectedAnswers;
+              // Only show player answers list to host
+              const playerAnswers = isHost 
+                ? Object.entries(answers)
+                    .filter(([_, answerIndex]) => answerIndex === index)
+                    .map(([player]) => player)
+                : [];
 
               return (
                 <motion.button
@@ -175,7 +190,8 @@ export default function Game({
                   whileTap={!showResults ? { scale: 0.98 } : {}}
                   disabled={showResults || !activePlayerName || isHost}
                   onClick={() => {
-                    if (activePlayerName && !selectedAnswers[activePlayerName] && !isHost) {
+                    const answers = propSelectedAnswers || selectedAnswers;
+                    if (activePlayerName && !answers[activePlayerName] && !isHost) {
                       handleAnswer(activePlayerName, index);
                     }
                   }}
@@ -184,7 +200,7 @@ export default function Game({
                       ? isCorrect
                         ? 'bg-gradient-to-r from-green-500/60 to-emerald-500/60 border-4 border-green-400 shadow-[0_0_20px_rgba(34,197,94,0.5)]'
                         : 'bg-gradient-to-r from-red-500/40 to-rose-500/40 border-2 border-red-400'
-                      : selectedAnswers[activePlayerName] === index
+                      : (propSelectedAnswers || selectedAnswers)[activePlayerName] === index
                       ? 'bg-gradient-to-r from-christmas-gold/40 to-yellow-300/40 border-4 border-christmas-gold shadow-[0_0_20px_rgba(255,215,0,0.5)]'
                       : 'bg-gradient-to-r from-white/15 to-white/10 hover:from-white/25 hover:to-white/15 border-2 border-white/30 hover:border-christmas-gold/50 shadow-lg hover:shadow-xl'
                   }`}
@@ -197,7 +213,7 @@ export default function Game({
                       <span className="text-2xl">✓</span>
                     )}
                   </div>
-                  {showResults && playerAnswers.length > 0 && (
+                  {showResults && isHost && playerAnswers.length > 0 && (
                     <div className="mt-2 text-sm text-white/80">
                       Answered by: {playerAnswers.join(', ')}
                     </div>
@@ -211,8 +227,9 @@ export default function Game({
           {isHost ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {players.map((player) => {
-                const hasAnswered = selectedAnswers[player] !== undefined;
-                const isCorrect = selectedAnswers[player] === question.correctAnswer;
+                const answers = propSelectedAnswers || selectedAnswers;
+                const hasAnswered = answers[player] !== undefined;
+                const isCorrect = answers[player] === question.correctAnswer;
                 
                 return (
                   <motion.div
@@ -246,21 +263,21 @@ export default function Game({
                 animate={{ opacity: 1 }}
                 className={`p-4 rounded-lg text-center w-full max-w-xs ${
                   showResults
-                    ? selectedAnswers[activePlayerName] === question.correctAnswer
+                    ? (propSelectedAnswers || selectedAnswers)[activePlayerName] === question.correctAnswer
                       ? 'bg-green-500/30'
-                      : selectedAnswers[activePlayerName] !== undefined
+                      : (propSelectedAnswers || selectedAnswers)[activePlayerName] !== undefined
                       ? 'bg-red-500/30'
                       : 'bg-gray-500/30'
-                    : selectedAnswers[activePlayerName] !== undefined
+                    : (propSelectedAnswers || selectedAnswers)[activePlayerName] !== undefined
                     ? 'bg-christmas-gold/30'
                     : 'bg-white/10'
                 }`}
               >
                 <div className="text-lg font-semibold mb-2">{activePlayerName}</div>
                 <div className="text-sm">
-                  {selectedAnswers[activePlayerName] !== undefined 
+                  {(propSelectedAnswers || selectedAnswers)[activePlayerName] !== undefined 
                     ? (showResults 
-                        ? (selectedAnswers[activePlayerName] === question.correctAnswer ? '✓ Correct!' : '✗ Wrong')
+                        ? ((propSelectedAnswers || selectedAnswers)[activePlayerName] === question.correctAnswer ? '✓ Correct!' : '✗ Wrong')
                         : '✓ Answered')
                     : 'Waiting...'}
                 </div>

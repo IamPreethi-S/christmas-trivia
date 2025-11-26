@@ -78,14 +78,15 @@ export default function Home() {
     }
   };
 
-  // Poll for game state updates (every 1 second)
+  // Poll for game state updates (every 500ms during game for better responsiveness)
   useEffect(() => {
     if (viewMode !== 'landing') {
       fetchGameState();
-      const interval = setInterval(fetchGameState, 1000);
+      const pollInterval = gameState === 'playing' ? 500 : 1000; // Faster polling during game
+      const interval = setInterval(fetchGameState, pollInterval);
       return () => clearInterval(interval);
     }
-  }, [viewMode]);
+  }, [viewMode, gameState]);
 
   const handleHostGame = () => {
     if (typeof window !== 'undefined') {
