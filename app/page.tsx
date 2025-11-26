@@ -30,36 +30,42 @@ export default function Home() {
       const urlParams = new URLSearchParams(window.location.search);
       const mode = urlParams.get('mode');
       
-      // QR code URL - will be updated when host clicks "Host a Game"
-      // Default to base URL, but will be set to include ?mode=player when host starts
       const baseUrl = window.location.origin + window.location.pathname;
-      setGameUrl(baseUrl + (mode === 'host' ? '?mode=player' : ''));
-
-      // Check URL parameter first (most reliable)
+      
+      // Check URL parameter first (most reliable indicator)
       if (mode === 'host') {
-        // Host clicked "Host a Game" button
+        // Host clicked "Host a Game" button - show host view with QR code
         setViewMode('host');
         localStorage.setItem('isHost', 'true');
+        // Set QR code URL for players
+        setGameUrl(baseUrl + '?mode=player');
       } else if (mode === 'player') {
         // Player scanning QR code - go directly to player view
         setViewMode('player');
         localStorage.setItem('isHost', 'false');
+        setGameUrl(baseUrl);
       } else {
-        // Check localStorage for saved state
+        // No URL parameter - check if we should restore previous session
         const isHost = localStorage.getItem('isHost') === 'true';
         const savedPlayerName = localStorage.getItem('playerName');
         
         if (isHost) {
-          // Host has previously hosted - show host view
+          // Restore host view if they were hosting
           setViewMode('host');
+          setGameUrl(baseUrl + '?mode=player');
         } else if (savedPlayerName) {
-          // Player has previously joined - show player view with their name
+          // Restore player view if they were playing
           setPlayerName(savedPlayerName);
           setViewMode('player');
           localStorage.setItem('isHost', 'false');
+          setGameUrl(baseUrl);
         } else {
-          // First visit - show landing page with "Host a Game" button
+          // First visit or fresh start - show landing page
           setViewMode('landing');
+          setGameUrl(baseUrl);
+          // Clear any old state
+          localStorage.removeItem('isHost');
+          localStorage.removeItem('playerName');
         }
       }
     }
@@ -93,10 +99,11 @@ export default function Home() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('isHost', 'true');
       setViewMode('host');
+      const baseUrl = window.location.origin + window.location.pathname;
       // Update URL with host parameter
-      window.history.pushState({}, '', window.location.pathname + '?mode=host');
-      // Set QR code URL for players (with join parameter)
-      setGameUrl(window.location.origin + window.location.pathname + '?mode=player');
+      window.history.pushState({}, '', baseUrl + '?mode=host');
+      // Set QR code URL for players (with player parameter)
+      setGameUrl(baseUrl + '?mode=player');
     }
   };
 
@@ -345,7 +352,7 @@ export default function Home() {
               <div className="bg-white p-4 rounded-2xl inline-block mb-6 relative z-10 shadow-2xl border-4 border-christmas-gold/30">
                 {gameUrl && (
                   <QRCodeSVG
-                    value={gameUrl.includes('?mode=player') ? gameUrl : gameUrl + '?mode=player'}
+                    value={gameUrl}
                     size={256}
                     level="H"
                     includeMargin={true}
